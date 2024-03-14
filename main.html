@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <!-- Include Tailwind CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <!-- Include Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="min-h-screen bg-gray-200 p-10">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-white p-5 rounded shadow-lg">
+          <h1 class="text-xl font-semibold text-center mb-5 border-b pb-3">
+            Dashboard
+          </h1>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="p-4 bg-gray-100 rounded flex items-center">
+              <div class="text-lg">
+                <p>Battery</p>
+                <p>Voltage</p>
+                <p id="voltage" class="text-3xl font-bold">-</p>
+              </div>
+            </div>
+            <div
+              class="p-4 bg-gray-100 rounded flex justify-center items-center"
+            >
+              <i class="fas fa-battery-full fa-3x"></i>
+              <span class="text-3xl font-bold ml-2">100%</span>
+            </div>
+          </div>
+          <div class="mt-5 p-4 bg-gray-100 rounded">
+            <div class="flex justify-between items-center" id="chart-container">
+              <!-- Chart elements will be dynamically added here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Python code (embedded as a data URI)
+      const pythonCode = `
+import asyncio
+import serial
+import websockets
+import json
+
+ser = serial.Serial('COM5', 9600)  # Update ttyACM0 to your Arduino serial port
+
+async def send_data(websocket, path):
+    while True:
+        if ser.in_waiting > 0:
+            line = ser.readline().decode('utf-8').rstrip()
+            voltage = float(line.split(":")[1].strip())
+            await websocket.send(json.dumps({'voltage': voltage}))
+            await asyncio.sleep(1)
+
+start_server = websockets.serve(send_data, "localhost", 8765)
+
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
+`;
+
+      // Blob containing Python code
+      const blob = new Blob([pythonCode], { type: "text/plain" });
+
+      // URL for the blob
+      const blobURL = URL.createObjectURL(blob);
+
+      // Create a new worker from the blob URL
+      const worker = new Worker(blobURL);
+
+      // Revoke the blob URL once it's no longer needed
+      URL.revokeObjectURL(blobURL);
+
+      // WebSocket connection to the Python script
+      const socket = new WebSocket("ws://localhost:8765");
+
+      // Event listener for when the socket connection is open
+      socket.onopen = function (event) {
+        console.log("WebSocket connection established");
+      };
+
+      // Event listener for when messages are received from the Python script
+      socket.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+        document.getElementById("voltage").innerText = data.voltage.toFixed(2);
+        // Code to update chart with data if necessary
+      };
+    </script>
+  </body>
+</html>
