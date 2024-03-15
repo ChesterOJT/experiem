@@ -1,19 +1,25 @@
-import asyncio
-import serial
-import websockets
-import json
+import pyrebase
 
-ser = serial.Serial('COM5', 9600)  # Update ttyACM0 to your Arduino serial port
+# Firebase configuration
+firebaseConfig = {
+    "apiKey": "AIzaSyCEwGMvPa62SW3-7rxS-acoQko5TsWt9qk",
+    "authDomain": "test-49a7b.firebaseapp.com",
+    "databaseURL": "https://test-49a7b-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "projectId": "test-49a7b",
+    "storageBucket": "test-49a7b.appspot.com",
+    "messagingSenderId": "285207762548",
+    "appId": "1:285207762548:web:2bb304869cea9987926321",
+    "measurementId": "G-NVC73RLNFS"
+}
 
-async def send_data(websocket, path):
-    while True:
-        if ser.in_waiting > 0:
-            line = ser.readline().decode('utf-8').rstrip()
-            voltage = float(line.split(":")[1].strip())
-            await websocket.send(json.dumps({'voltage': voltage}))
-            await asyncio.sleep(1)
+firebase = pyrebase.initialize_app(firebaseConfig)
+db = firebase.database()
 
-start_server = websockets.serve(send_data, "localhost", 8765)
+# Example sensor data
+sensor_data = {
+    "temperature": 25,
+    "humidity": 50
+}
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+# Push data to Firebase
+db.child("sensors").push(sensor_data)

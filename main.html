@@ -3,99 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard</title>
-    <!-- Include Tailwind CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
-    <!-- Include Font Awesome -->
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <div class="min-h-screen bg-gray-200 p-10">
-      <div class="max-w-4xl mx-auto">
-        <div class="bg-white p-5 rounded shadow-lg">
-          <h1 class="text-xl font-semibold text-center mb-5 border-b pb-3">
-            Dashboard
-          </h1>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="p-4 bg-gray-100 rounded flex items-center">
-              <div class="text-lg">
-                <p>Battery</p>
-                <p>Voltage</p>
-                <p id="voltage" class="text-3xl font-bold">-</p>
-              </div>
-            </div>
-            <div
-              class="p-4 bg-gray-100 rounded flex justify-center items-center"
-            >
-              <i class="fas fa-battery-full fa-3x"></i>
-              <span class="text-3xl font-bold ml-2">100%</span>
-            </div>
-          </div>
-          <div class="mt-5 p-4 bg-gray-100 rounded">
-            <div class="flex justify-between items-center" id="chart-container">
-              <!-- Chart elements will be dynamically added here -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    <title>IoT Dashboard</title>
+    <!-- Include Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.5/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.5/firebase-database.js"></script>
     <script>
-      // Python code (embedded as a data URI)
-      const pythonCode = `
-import asyncio
-import serial
-import websockets
-import json
-
-ser = serial.Serial('COM5', 9600)  # Update ttyACM0 to your Arduino serial port
-
-async def send_data(websocket, path):
-    while True:
-        if ser.in_waiting > 0:
-            line = ser.readline().decode('utf-8').rstrip()
-            voltage = float(line.split(":")[1].strip())
-            await websocket.send(json.dumps({'voltage': voltage}))
-            await asyncio.sleep(1)
-
-start_server = websockets.serve(send_data, "localhost", 8765)
-
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
-`;
-
-      // Blob containing Python code
-      const blob = new Blob([pythonCode], { type: "text/plain" });
-
-      // URL for the blob
-      const blobURL = URL.createObjectURL(blob);
-
-      // Create a new worker from the blob URL
-      const worker = new Worker(blobURL);
-
-      // Revoke the blob URL once it's no longer needed
-      URL.revokeObjectURL(blobURL);
-
-      // WebSocket connection to the Python script
-      const socket = new WebSocket("ws://localhost:8765");
-
-      // Event listener for when the socket connection is open
-      socket.onopen = function (event) {
-        console.log("WebSocket connection established");
+      // Firebase configuration
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+      const firebaseConfig = {
+        apiKey: "AIzaSyCEwGMvPa62SW3-7rxS-acoQko5TsWt9qk",
+        authDomain: "test-49a7b.firebaseapp.com",
+        databaseURL:
+          "https://test-49a7b-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "test-49a7b",
+        storageBucket: "test-49a7b.appspot.com",
+        messagingSenderId: "285207762548",
+        appId: "1:285207762548:web:2bb304869cea9987926321",
+        measurementId: "G-NVC73RLNFS",
       };
 
-      // Event listener for when messages are received from the Python script
-      socket.onmessage = function (event) {
-        const data = JSON.parse(event.data);
-        document.getElementById("voltage").innerText = data.voltage.toFixed(2);
-        // Code to update chart with data if necessary
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+
+      // Reference to your Firebase Realtime Database
+      const db = firebase.database();
+
+      // Function to fetch and display sensor data
+      function fetchSensorData() {
+        const sensorsRef = db.ref("sensors");
+        sensorsRef.on("value", (snapshot) => {
+          const data = snapshot.val();
+          document.getElementById(
+            "temperature"
+          ).innerText = `Temperature: ${data.temperature}ï¿½C`;
+          document.getElementById(
+            "humidity"
+          ).innerText = `Humidity: ${data.humidity}%`;
+        });
+      }
+
+      // Fetch sensor data on page load
+      window.onload = function () {
+        fetchSensorData();
       };
     </script>
+  </head>
+  <body>
+    <h1>IoT Dashboard</h1>
+    <div id="temperature"></div>
+    <div id="humidity"></div>
   </body>
 </html>
